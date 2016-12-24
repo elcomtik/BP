@@ -1,0 +1,37 @@
+﻿# Predikcia pohybu v 2d obraze
+Aktuálne dostupné riešenia pre počítačové spracovanie obrazu nám umožňujú relatívne jednoducho detegovať a sledovať pohybujúce sa objekty. Pre mobilný robot však môže byť užitočné vedieť aj predpovedať, kde sa bude sledovaný objekt nachádzať v blízkej budúcnosti. Robotický žonglér musí vedieť, kam letí padajúca loptička, aby bol schopný ju chytiť. Robotický brankár musí byť schopný určiť, ku ktorej bránkovej tyči má vykonať zákrok. Autonómny vozík môže výrazne zefektívniť plánovanie trajektórie, pokiaľ bude nie len vedieť, ktoré prekážky sú dynamické, ale zároveň bude vedieť aj určiť, kam by sa mohli v budúcnosti presunúť. Cieľom práce je implementovať počítačový program v programovacích jazykoch Python, R a C++, ktorý bude sledovať zvolené objekty a na základe ich predchádzajúcej trajektórie bude schopný predpovedať ich možné polohy v budúcnosti. Predpokladá sa použitie knižnice OpenCV.
+
+Úlohy:
+1. Naštudujte a prehľadne spracujte problematiku identifikácie objektov v 2D obraze pomocou knižnice OpenCV. Získajte datasety - videá obsahujúce situácie z úvodu práce, ktoré budete v práci používať. Experimenty natáčajte tak, aby ste minimalizovali skreslenia.
+(do 4. tyzdna)
+-skompulovat si vlastne openCV(cmake:)
+  -http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_setup/py_setup_in_windows/py_setup_in_windows.html#install-opencv-python-in-windows
+  -http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_setup/py_intro/py_intro.html#intro
+  
+  
+  
+-prieskup hotovych naimplementovanych veci - ball detection in openCV(tutorialy, zakladne operacie, morfologicke operaqtory, filtre, ai.) houghove rovnice, peto ma zaverecnu pracu ktora toto riesi
+ -http://opencv-srf.blogspot.sk/2010/09/object-detection-using-color-seperation.html
+ -http://www.pyimagesearch.com/2015/09/14/ball-tracking-with-opencv/
+-schollar.google.com -> openCV object detection (erozia, dilacia, po 10 odrazok)
+-10 videi pre kazdy use case:
+  -sikmy vrh predstavuje (z bocnej projekcie)
+  -kop brankara(pohlad zvrchu)
+  -autonomny vozik (zatial netreba)
+
+2. Implementujte riešenia schopné detegovať v obraze loptičku na základe tvaru a farby.
+
+3. Implementujte riešenie schopné detegovať v obraze človeka.
+-human detection in openCV(tutorialy+publikacie) (Haar casade identifier)
+
+
+4. Experimentálne overte vytvorené riešenia pre detekciu zvolených objektov, experimenty vyhodnoťte a zdokumentujte. Ak zaznamenáte falošné detekcie, popíšte príčiny ich vzniku.
+5. Naštudujte a prehľadne spracujte problematiku sledovania detegovaných objektov. Teoreticky spracujte metódy pre sledovanie viacerých objektov. 
+6. Implementujte mechanizmus sledovania objektov v datasetoch. Výstupom algoritmu by mal byť vektor pozícii, prípadne rýchlosti sledovaného objektu v čase.
+7. Naštudujte a spracujte problematiku predikcie polohy v 2D priestore. Skúste spracovať čo najvyšší počet metód a prehľadne zdokumentovať ich výhody, nevýhody a možnosti použitia. 
+8. Implementujte zvolené predikčné algoritmy.
+9. Vyhodnoťte chybu predikcie pozície v testovacích datasetoch a výsledky spracujte vo forme tabuliek aj grafov.
+10. Technicky zdokumentujte vytvorené riešenie.
+
+
+opencv-contrib
