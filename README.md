@@ -6,7 +6,7 @@ Roman Danko
 
 supervisor:
 ===========
-Peter Beňo
+Ing. Peter Beňo
 
 Content:
 ===========================
