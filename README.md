@@ -1,4 +1,4 @@
-# Bacelor Thesis - Prediction of object movement in 2d image
+# Bacelor Thesis - Prediction of object movement in 2D image
 
 autor:
 =======
