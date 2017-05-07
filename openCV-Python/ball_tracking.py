@@ -7,76 +7,94 @@ import cv2
 import numpy as np
 
 # open video capture
-cap = cv2.VideoCapture(0)
+# cap = cv2.VideoCapture(0)
+# cap = cv2.VideoCapture('priamy/priamy_01.mp4')
 
-# define the codec and create VideoWriter object
-fourcc = cv2.VideoWriter_fourcc(*'DIVX')  #only this one currently working under windows
-out = cv2.VideoWriter('output.avi',fourcc, 15.0, (640,480))  #640,480 and 15fps for my webcam,   1280,720
-print out.isOpened()
+for v in range(01,25):
+#for v in range(01, 11):
 
-while cap.isOpened():
+    print "{0:0>3}".format(v)
+    cap = cv2.VideoCapture('sikmy/sikmy_' + "{0:0>2}".format(v) + '.mp4')
+    # cap = cv2.VideoCapture('priamy/priamy_' + "{0:0>2}".format(v) + '.mp4')
 
-    # take each frame
-    ret, frame = cap.read()
-    if ret:
+    # define the codec and create VideoWriter object
+    fourcc = cv2.VideoWriter_fourcc(*'DIVX')  # only this one currently working under windows
+    out = cv2.VideoWriter('sikmy_out/sikmy_output_' + "{0:0>2}".format(v) + '.avi',fourcc, 50.0, (1280,720))  #640,480 and 15fps for my webcam,   1280,720
+    # out = cv2.VideoWriter('priamy_out/priamy_output_' + "{0:0>2}".format(v) + '.avi', fourcc, 50.0, (1280, 720))  # 640,480 and 15fps for my webcam,   1280,720
+    # out2 = cv2.VideoWriter('sikmy_out/sikmy_output_gray_' + "{0:0>2}".format(v) + '.avi', fourcc, 50.0, (1280, 720))  # 640,480 and 15fps for my webcam,   1280,720
+    print out.isOpened()
 
-        # convert BGR to HSV
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    while cap.isOpened():
 
-        # define range of orange color in HSV
-        lower_orange = np.array([3, 100, 10]) #-15
-        upper_orange = np.array([33, 255, 255]) #+15
+        # take each frame
+        ret, frame = cap.read()
+        if ret:
 
-        # threshold the HSV image to get only blue colors
-        mask = cv2.inRange(hsv, lower_orange, upper_orange)
+            # convert BGR to HSV
+            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-        # bitwise-AND mask and original image
-        res = cv2.bitwise_and(frame,frame, mask= mask)
+            # define range of orange color in HSV
+            # lower_orange = np.array([3, 100, 10]) #-15
+            # upper_orange = np.array([33, 255, 255]) #+15
+            lower_orange = np.array([3, 120, 10])  # -15
+            upper_orange = np.array([33, 255, 255])  # +15
 
-        # display mask and masked source image
-        cv2.imshow('mask',mask)
-        cv2.imshow('res',res)
+            # threshold the HSV image to get only blue colors
+            mask = cv2.inRange(hsv, lower_orange, upper_orange)
 
-        # we need grayscale for hugh circle algorithm, so we transform it
-        gray = cv2.cvtColor(res, cv2.COLOR_HSV2BGR)
-        gray = cv2.cvtColor(gray, cv2.COLOR_BGR2GRAY)
+            # bitwise-AND mask and original image
+            res = cv2.bitwise_and(frame, frame, mask=mask)
 
-        # for better detection, ew need apply some blur (the best permformance provides for me gaussian)
-        gray = cv2.GaussianBlur(gray, (9, 9), 2, 2)
+            # display mask and masked source image
+            cv2.imshow('mask', mask)
+            cv2.imshow('res', res)
 
-        # display grayscale image before detection of circles
-        cv2.imshow('gray', gray)
+            # we need grayscale for hugh circle algorithm, so we transform it
+            gray = cv2.cvtColor(res, cv2.COLOR_HSV2BGR)
+            gray = cv2.cvtColor(gray, cv2.COLOR_BGR2GRAY)
 
-        # find circles
-        circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, 20, param1=50, param2=30, minRadius=0, maxRadius=0)
+            # for better detection, ew need apply some blur (the best permformance provides for me gaussian)
+            gray = cv2.GaussianBlur(gray, (9, 9), 2, 2)
 
-        # lets display result of deection on source image
-        try:
-            circles = np.uint16(np.around(circles))
-            print "found ball"
-            for i in circles[0, :]:
-                # draw the outer circle
-                cv2.circle(frame, (i[0], i[1]), i[2], (0, 255, 0), 2)
-                # draw the center of the circle
-                cv2.circle(frame, (i[0], i[1]), 2, (0, 0, 255), 3)
-        except:
-            print "nothing here"
+            # display grayscale image before detection of circles
+            cv2.imshow('gray', gray)
+            # write gray frame
+            # out2.write(gray)
 
-        # display current frame
-        cv2.imshow('frame',frame)
+            # find circles
+            circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, 20, param1=50, param2=30, minRadius=0, maxRadius=0)
 
-        # write frame
-        out.write(frame)
+            # lets display result of deection on source image
 
-        #wait for 'q' key to exit program
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+            try:
+                circles = np.uint16(np.around(circles))
+                for i in circles[0, :]:
+                    # print "found ball at x=" + str(i[0]) + ", y=" + str(i[1])
+                    print str(i[0]) + ";" + str(i[1])
+                    # draw the outer circle
+                    cv2.circle(frame, (i[0], i[1]), i[2], (0, 255, 0), 2)
+                    # draw the center of the circle
+                    cv2.circle(frame, (i[0], i[1]), 2, (0, 0, 255), 3)
+            except:
+                # print "nothing_here"
+                print "?;?"
+
+            # display current frame
+            cv2.imshow('frame', frame)
+
+            # write frame
+            out.write(frame)
+
+            # wait for 'q' key to exit program
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+        # if video source stops than exit loop
+        else:
             break
 
-    #if video source stops than exit loop
-    else:
-        break
-
-#close properly resources
-cap.release()
-out.release()
-cv2.destroyAllWindows()
+    # close properly resources
+    cap.release()
+    out.release()
+    # out2.release()
+    cv2.destroyAllWindows()
