@@ -31,37 +31,71 @@ def predictNaive(path):
                     predictedCoordinates = (pX, pY)
                     images[k2 + 1] = predictedCoordinates
 
-                # useful for computing prediction and drawing trajectory
                 prevCoordinates = coordinates
         # break;
-        predictions[k1] = images
+        predictions[k1+"_naive"] = images
 
     return predictions
 
-def printPath(path, trajectory, color):
+def printPath(path, trajectory, color, count):
+
+    colors = []
+
+
+    colors.append([194, 255, 0]) # light blue
+    colors.append([70, 79, 158]) # brown
+    colors.append([255, 0, 0]) #blue
+    colors.append([0, 0, 255]) #red
+    colors.append([0, 255, 0]) #green
+    colors.append([185, 26, 255]) #pink
+    colors.append([0,211,255]) #yellow
+    colors.append([0,88,0]) #dark green
+    colors.append([255,132,132]) #grey
+
+    #used for posisoning legend
+    if not count :
+        count = 0
+
+    if not color:
+        color = colors[count]
+
     for k1, t in path.iteritems():
         # print t
 
-        n = 0
-        images = {}
+        curTrajectory = np.ones((height, width, 3), np.uint8) * 255
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        cv2.putText(curTrajectory, str(k1), (20, 20), font, 0.5, color, 1, cv2.LINE_AA)
+        cv2.putText(trajectory, str(k1), (20, 20 * (count + 1)), font, 0.5, color, 1, cv2.LINE_AA)
 
+
+        n = 0
         sorted_t = sorted(t.items(), key=operator.itemgetter(0))
         for k2, i in sorted_t:
+
             n += 1
 
             # write detected object trajectory
             if (i[0] in range(0, width)) & (i[1] in range(0, height)):
                 coordinates = (i[0], i[1])
-                trajectory = cv2.circle(trajectory, coordinates, 2, (0, 0, 255), 3)
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                cv2.putText(trajectory, str(k1) + ';' + str(k2), coordinates, font, 0.5, (255, 255, 255), 1,
-                            cv2.LINE_AA)
 
                 if n > 1:
                     trajectory = cv2.line(trajectory, coordinates, prevCoordinates, color, 2)
+                    curTrajectory = cv2.line(curTrajectory, coordinates, prevCoordinates, color, 2)
 
-                # useful for computing prediction and drawing trajectory
+                trajectory = cv2.circle(trajectory, coordinates, 2, color, 3)
+                curTrajectory = cv2.circle(curTrajectory, coordinates, 2, color, 3)
+
+                cv2.putText(trajectory, str(k2), coordinates, font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(curTrajectory, str(k2), coordinates, font, 0.4, (0, 0, 0), 1, cv2.LINE_AA)
+
                 prevCoordinates = coordinates
+
+        count +=1
+        color = colors[count]
+
+        cv2.imwrite("out/" + dataset + "/" + str(k1) + "_trajectory.jpg", curTrajectory)
+
+
     return trajectory
 
 def detect(frame, pout):
@@ -84,7 +118,7 @@ def detect(frame, pout):
     # cv2.imshow('mask', mask)
     # cv2.imshow('res', res)
 
-    # for better detection, ew need apply some blur (the best permformance provides for me gaussian)
+    # for better detection, we need apply some blur (the best permformance provides for me gaussian)
     # without blur, multiple countours detected, for exapmle pointd from noise
     gray = cv2.GaussianBlur(mask, (9, 9), 2, 2)
 
@@ -123,7 +157,7 @@ def detect(frame, pout):
                 if pout:
                     a = 0 #placeholder
                     ###print str(video) + ";" + str(count) + ";" + str(cX) + ";" + str(cY) + ";" + str(d)
-                # print "found"
+
                 return found, frame, gray, x, y, w, h, cX, cY, M["m00"]
 
     if pout:
@@ -169,11 +203,13 @@ def track(tracker, frame, bbox, type):
 
 ###Setings####
 
-# directory = 'sikmy'
-# directory = 'priamy'
-# directory = 'test'
-directory = 'test2'
-# directory = 'test3'
+directory = 'datasety/'
+# dataset = 'sikmy'
+# dataset = 'priamy'
+# dataset = 'test'
+# dataset = 'test2'
+# dataset = 'test3'
+dataset = 'test4'
 width = 1280
 height = 720
 aspect_ratio = (width, height)
@@ -183,21 +219,19 @@ aspect_ratio = (width, height)
 # Set up tracker.
 # Instead of MIL(4), you can also use
 # BOOSTING(1), KCF(2), TLD(2), MEDIANFLOW(1)
-trackers = ["MIL", "BOOSTING", "KCF", "TLD", "MEDIANFLOW"]
-# trackers = ["BOOSTING", "MEDIANFLOW"]
+# trackers = ["MIL", "BOOSTING", "KCF", "TLD", "MEDIANFLOW"]
+trackers = ["BOOSTING", "MEDIANFLOW"]
 # trackers = ["MEDIANFLOW"]
 
 
-
-
 video = 0
-reference = {}
-detections = {}
-for filename in os.listdir(directory):
+reference = {} # reference detections by center of mass
+detections = {} # all other detections algorithms
+for filename in os.listdir(directory+dataset):
 
     if filename.endswith(".mp4"):
 
-        path = os.path.join(directory, filename)
+        path = os.path.join(directory+dataset, filename)
         # print(path)
 
         #######################
@@ -208,9 +242,9 @@ for filename in os.listdir(directory):
         # define the codec and create VideoWriter object
         fourcc = cv2.VideoWriter_fourcc(*'DIVX')  # only this one currently working under windows
 
-        name = re.sub('\mp4$', '', path)
-        print 'out/' + directory + '/reference_' + name + "avi"
-        out = cv2.VideoWriter('out/' + directory + '/reference_' + name + "avi", fourcc, 50.0,
+        name = re.sub('\.mp4$', '', filename)
+        print 'out/' + dataset + '/reference_' + name + ".avi"
+        out = cv2.VideoWriter('out/' + dataset + '/reference_' + name + ".avi", fourcc, 50.0,
                               aspect_ratio)  # 640,480 and 15fps for my webcam,   1280,720
 
         # print out.isOpened()
@@ -286,7 +320,8 @@ for filename in os.listdir(directory):
                             cv2.circle(frame, center, 2, (0, 0, 255), 3)
 
                     if not found:
-                        print str(video) + ";" + str(count) + ";?;?;?"
+                        a = 0
+                        ##print str(video) + ";" + str(count) + ";?;?;?"
 
                 else:
                     # print "nothing_here"
@@ -300,11 +335,11 @@ for filename in os.listdir(directory):
                 out.write(frame)
 
                 # write frame to jpg
-                cv2.imwrite("out/" + path + "_reference_frame_%d.jpg" % count, frame)
-                cv2.imwrite("out/" + path + "_reference_frame_%d_mask.jpg" % count, gray)
+                cv2.imwrite("out/" + dataset +  "/" + name + "_reference_frame_%d.jpg" % count, frame)
+                cv2.imwrite("out/" + dataset + "/" + name + "_reference_frame_%d_mask.jpg" % count, gray)
 
                 # assemble our data into one
-                reference[video] = images
+                reference[name + "_mass"] = images
 
                 # wait for 'q' key to exit program
                 if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -324,14 +359,20 @@ for filename in os.listdir(directory):
         ####################
         ##naive prediction##
         ####################
+
+        #initialize picture for drawing our detections/prediction paths
+        trajectory = np.ones((height, width, 3), np.uint8) * 255
+
         print "reference values"
         print reference
-        trajectory = np.zeros((height, width, 3), np.uint8)
+        trajectory = printPath(reference, trajectory, (194, 255, 0), 0) #light blue
+
+        #compute naive predictions for reference detection
         predictions = predictNaive(reference)
 
         print "predicted object coordinates"
         print predictions
-        trajectory = printPath(predictions, trajectory, (0, 255, 0))
+        trajectory = printPath(predictions, trajectory, (70,79,158), 1) #brown
 
 
         ###########################
@@ -344,13 +385,12 @@ for filename in os.listdir(directory):
             # define the codec and create VideoWriter object
             fourcc = cv2.VideoWriter_fourcc(*'DIVX')  # only this one currently working under windows
 
-            name = re.sub('\mp4$', '', path)
+            name = re.sub('\.mp4$', '', filename)
 
-            print 'out/' + directory + "/" + trackerType + "_" + name + "avi"
-            out = cv2.VideoWriter('out/' + directory + "/" + trackerType + "_" + name + "avi", fourcc, 50.0, aspect_ratio)  # 640,480 and 15fps for my webcam,   1280,720
-            #print out.isOpened()
+            print 'out/' + dataset + "/" + trackerType + "_" + name + ".avi"
+            out = cv2.VideoWriter('out/' + dataset + "/" + trackerType + "_" + name + ".avi", fourcc, 50.0, aspect_ratio)
 
-            # Read frames until finds our object
+
             video += 1
             count = 0
             bbox = False
@@ -360,10 +400,10 @@ for filename in os.listdir(directory):
             tracker = False
             #x, y, w, h
 
-            # citame video subor
+            # Read until end of video
             while cap.isOpened():
 
-                # snimok po snimku
+                # Read frames
                 ret, frame = cap.read()
                 if ret:
 
@@ -382,21 +422,21 @@ for filename in os.listdir(directory):
                         tracker, oframe, cX, cY, d = track(tracker, frame, bbox, trackerType)
                         images[count] = [int(cX), int(cY), int(d)]
 
-                        #kazdy 5ty obrazok urob preventivne detekciu
+                        #echch 5th frame do detecion, determine if we should stop tracking
                         if count % 5 == 0:
                             found, oframe, gray, x, y, w, h, cX, cY, d = detect(frame, False)
 
-                    # zobrazime aktualny upraveny o detekciu
+                    # display current frame with our detection
                     cv2.imshow(path + " " + trackerType, oframe)
 
-                    # zapiseme do vystupneho videa
+                    # write to output video
                     out.write(oframe)
 
-                    # zapiseme do vystupneho obrazku
-                    cv2.imwrite("out/" + path + "_" + trackerType + "_frame_%d.jpg" % count, oframe)
+                    # write to image
+                    cv2.imwrite("out/" + dataset + "/_" + trackerType + "/" + name +  "_frame_%d.jpg" % count, oframe)
 
-                    # spojime svoje data s detekcie do jednej premennej
-                    detections[video] = images
+                    # save data to variable, for later stats
+                    detections[name + "_" + trackerType] = images
 
                     # wait for 'q' key to exit program
                     if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -413,16 +453,14 @@ for filename in os.listdir(directory):
     else:
         continue
 
-
-
 print "tracking API detections"
 print detections
-trajectory = printPath(detections, trajectory, (255, 0, 0))
+trajectory = printPath(detections, trajectory, False, 2)
 
 
 # Let's show our results
 cv2.imshow("trajectory", trajectory)
-cv2.imwrite("out/" + directory + "/sum_trajectory_ALLinONE.jpg", trajectory)
+cv2.imwrite("out/" + dataset + "/sum_trajectory_ALLinONE.jpg", trajectory)
 
 while True:
     # wait for 'q' key to exit program

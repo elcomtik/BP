@@ -1,7 +1,7 @@
 # Roman Danko, 20.4.2017
 #
 # Object tracking(orange ball) implementation based on two principles combined together. Fist is used colour filtering
-# of tracked object. Second is one named Moments, whic  found circles are written to image.
+# of tracked object. Second is Hough circle detection, found circles are written to image.
 
 import os
 import re
@@ -9,25 +9,23 @@ import operator
 import cv2
 import numpy as np
 
-# directory = 'sikmy'
+directory = 'datasety/'
+dataset = 'sikmy'
 # directory = 'priamy'
 # directory = 'test'
-directory = 'test4'
+# directory = 'test4'
 width = 1280
 height = 720
 aspect_ratio = (width, height)
 
-#select which trajectory calculate
-# s = 3
 
 video = 0
 detections = {}
-for filename in os.listdir(directory):
-
+for filename in os.listdir(directory+dataset):
 
     if filename.endswith(".mp4"):
 
-        path = os.path.join(directory, filename)
+        path = os.path.join(directory+dataset, filename)
         #print(path)
 
         cap = cv2.VideoCapture(path)
@@ -42,9 +40,6 @@ for filename in os.listdir(directory):
 
         video += 1
         #print video
-
-        # if video != s:
-        #     continue
 
         count = 0
 
@@ -61,8 +56,9 @@ for filename in os.listdir(directory):
 
                 # define range of orange color in HSV
                 # lower_orange = np.array([3, 100, 10]) #-15
-                # upper_orange = np.array([33, 255, 255]) #+15
-                lower_orange = np.array([3, 120, 10])  # -15
+                # lower_orange = np.array([3, 120, 10])  # -15
+                # lower_orange = np.array([3, 130, 150])  # -15
+                lower_orange = np.array([3, 80, 40])  # -15
                 upper_orange = np.array([33, 255, 255])  # +15
 
                 # threshold the HSV image to get only blue colors
@@ -83,11 +79,14 @@ for filename in os.listdir(directory):
                 # cv2.imshow('gray', gray)
 
                 # find circles by contours
-                circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, 20, param1=45, param2=20, minRadius=0, maxRadius=0)
+                circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, 20, param1=45, param2=18, minRadius=0, maxRadius=0)
 
                 try:
                     circles = np.uint16(np.around(circles))
                     found = False
+                    scX = 0
+                    scY = 0
+                    c = 0
                     for i in circles[0, :]:
 
                         # if diameter detected object is smaller than defined, we asume that it is false detection
@@ -95,17 +94,25 @@ for filename in os.listdir(directory):
                         if i[2] > 50:
 
                             found = True
+                            c += 1
 
                             cX = i[0]
                             cY = i[1]
-                            center = (int(cX), int(cY))
-                            print str(video) + ";" + str(count) + ";" + str(cX) + ";" + str(cY) + ";" + str(i[2])
-                            images[count] = [cX, cY, i[2]]
+                            scX += cX
+                            scY += cY
 
-                            # draw the outer circle
-                            cv2.circle(frame, center, 65, (0, 255, 0), 2)
-                            # draw the center of the circle
-                            cv2.circle(frame, center, 2, (0, 0, 255), 3)
+                    if found:
+                        pcX = scX/c
+                        pcY = scY/c
+
+                        center = (int(pcX), int(pcY))
+                        print str(video) + ";" + str(count) + ";" + str(pcX) + ";" + str(pcY) + ";" + str(i[2])
+                        images[count] = [pcX, pcY, i[2]]
+
+                        # draw the outer circle
+                        cv2.circle(frame, center, 65, (0, 255, 0), 2)
+                        # draw the center of the circle
+                        cv2.circle(frame, center, 2, (0, 0, 255), 3)
 
                     if not found:
                         print str(video) + ";" + str(count) + ";?;?;?"
@@ -146,11 +153,13 @@ for filename in os.listdir(directory):
 print "detected object coordinates"
 print detections
 
-trajectory = np.zeros((height,width,3), np.uint8)
+trajectories = np.ones((height, width, 3), np.uint8) * 255
 
 predictions = {}
 for k1,t in detections.iteritems():
-    print t
+    # print t
+
+    curTrajectory = np.ones((height, width, 3), np.uint8) * 255
 
     n = 0
     images = {}
@@ -161,13 +170,16 @@ for k1,t in detections.iteritems():
         # write detected object trajectory
         if (i[0] in range(0,width)) & (i[1] in range(0,height)):
             coordinates = (i[0], i[1])
-            trajectory = cv2.circle(trajectory, coordinates, 2, (0, 0, 255), 3)
+            trajectories = cv2.circle(trajectories, coordinates, 2, (0, 0, 255), 3)
+            curTrajectory = cv2.circle(curTrajectory, coordinates, 2, (0, 0, 255), 3)
             font = cv2.FONT_HERSHEY_SIMPLEX
-            cv2.putText(trajectory, str(k1) + ';' + str(k2), coordinates, font, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+            cv2.putText(trajectories, str(k1) + ';' + str(k2), coordinates, font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+            cv2.putText(curTrajectory, str(k1) + ';' + str(k2), coordinates, font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
 
             if n > 1:
-                trajectory = cv2.line(trajectory, coordinates, prevCoordinates, (255,0,0),2)
-                print k2
+                trajectories = cv2.line(trajectories, coordinates, prevCoordinates, (255, 0, 0), 2)
+                curTrajectory = cv2.line(curTrajectory, coordinates, prevCoordinates, (255, 0, 0), 2)
+                # print k2
 
             #let's do some prediction
             if n > 1:
@@ -179,12 +191,15 @@ for k1,t in detections.iteritems():
             #useful for computing prediction and drawing trajectory
             prevCoordinates = coordinates
     #break;
+    cv2.imwrite("out/" + dataset + "/" + str(k1) + "_trajectory.jpg", curTrajectory)
     predictions[k1] = images
 
 print "predicted object coordinates"
-# print predictions
+print predictions
 for k1,t in predictions.iteritems():
-    print t
+    # print t
+
+    curTrajectory = cv2.imread("out/" + dataset + "/" + str(k1) + "_trajectory.jpg")
 
     n = 0
     images = {}
@@ -196,19 +211,24 @@ for k1,t in predictions.iteritems():
         # write detected object trajectory
         if (i[0] in range(0,width)) & (i[1] in range(0,height)):
             coordinates = (i[0], i[1])
-            trajectory = cv2.circle(trajectory, coordinates, 2, (0, 255, 0), 3)
+            trajectories = cv2.circle(trajectories, coordinates, 2, (0, 0, 0), 3)
+            curTrajectory = cv2.circle(curTrajectory, coordinates, 2, (0, 0, 0), 3)
             font = cv2.FONT_HERSHEY_SIMPLEX
-            cv2.putText(trajectory, str(k1) + ';' + str(k2), coordinates, font, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+            cv2.putText(trajectories, str(k1) + ';' + str(k2), coordinates, font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+            cv2.putText(curTrajectory, str(k1) + ';' + str(k2), coordinates, font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
 
             if n > 1:
-                trajectory = cv2.line(trajectory, coordinates, prevCoordinates, (0,255,0),2)
+                trajectories = cv2.line(trajectories, coordinates, prevCoordinates, (0, 255, 0), 2)
+                curTrajectory = cv2.line(curTrajectory, coordinates, prevCoordinates, (0,255,0),2)
 
             # useful for computing prediction and drawing trajectory
             prevCoordinates = coordinates
 
+    cv2.imwrite("out/" + dataset + "/" + str(k1) + "_prediction_trajectory.jpg", curTrajectory)
+
 # Let's show our results
-cv2.imshow("trajectory", trajectory)
-cv2.imwrite("out/" + directory + "/sum_trajectory.jpg", trajectory)
+cv2.imshow("trajectory", trajectories)
+cv2.imwrite("out/" + dataset + "/sum_trajectory.jpg", trajectories)
 
 while True:
     # wait for 'q' key to exit program

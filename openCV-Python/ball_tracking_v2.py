@@ -1,7 +1,7 @@
 # Roman Danko, 20.4.2017
 #
 # Object tracking(orange ball) implementation based on two principles combined together. Fist is used colour filtering
-# of tracked object. Second is one named Moments, whic  found circles are written to image.
+# of tracked object. Second is one named Moments. At the end, found circles are written to image.
 
 import os
 import re
@@ -9,24 +9,23 @@ import operator
 import cv2
 import numpy as np
 
-# directory = 'sikmy'
+directory = 'datasety/'
+dataset = 'sikmy'
 # directory = 'priamy'
-directory = 'test'
+# directory = 'test'
+# directory = 'test4'
 width = 1280
 height = 720
 aspect_ratio = (width, height)
 
-#select which trajectory calculate
-# s = 3
 
 video = 0
 detections = {}
-for filename in os.listdir(directory):
-
+for filename in os.listdir(directory+dataset):
 
     if filename.endswith(".mp4"):
 
-        path = os.path.join(directory, filename)
+        path = os.path.join(directory+dataset, filename)
         #print(path)
 
         cap = cv2.VideoCapture(path)
@@ -110,20 +109,6 @@ for filename in os.listdir(directory):
                             # draw the center of the circle
                             cv2.circle(frame, center, 2, (0, 0, 255), 3)
 
-                            # (x, y), radius = cv2.minEnclosingCircle(cnt)
-                            # center = (int(x), int(y))
-                            # radius = int(radius)
-                            # #cv2.circle(frame, center, radius, (0, 255, 0), 2)
-                            #
-                            # # lets display result of deection on source image
-                            #
-                            # # print "found ball at x=" + str(i[0]) + ", y=" + str(i[1])
-                            # print str(x) + ";" + str(y)
-                            # # draw the outer circle
-                            # cv2.circle(frame, center, radius, (0, 255, 0), 2)
-                            # # draw the center of the circle
-                            # #cv2.circle(frame, (i[0], i[1]), 2, (0, 0, 255), 3)
-
                     if not found:
                         print str(video) + ";" + str(count) + ";?;?;?"
 
@@ -160,14 +145,17 @@ for filename in os.listdir(directory):
     else:
         continue
 
-print detections
-
-trajectory = np.zeros((height,width,3), np.uint8)
 
 print "detected object coordinates"
+print detections
+
+trajectories = np.ones((height, width, 3), np.uint8) * 255
+
 predictions = {}
 for k1,t in detections.iteritems():
-    print t
+    # print t
+
+    curTrajectory = np.ones((height, width, 3), np.uint8) * 255
 
     n = 0
     images = {}
@@ -178,13 +166,16 @@ for k1,t in detections.iteritems():
         # write detected object trajectory
         if (i[0] in range(0,width)) & (i[1] in range(0,height)):
             coordinates = (i[0], i[1])
-            trajectory = cv2.circle(trajectory, coordinates, 2, (0, 0, 255), 3)
+            trajectories = cv2.circle(trajectories, coordinates, 2, (0, 0, 255), 3)
+            curTrajectory = cv2.circle(curTrajectory, coordinates, 2, (0, 0, 255), 3)
             font = cv2.FONT_HERSHEY_SIMPLEX
-            cv2.putText(trajectory, str(k1) + ';' + str(k2), coordinates, font, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+            cv2.putText(trajectories, str(k1) + ';' + str(k2), coordinates, font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+            cv2.putText(curTrajectory, str(k1) + ';' + str(k2), coordinates, font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
 
             if n > 1:
-                trajectory = cv2.line(trajectory, coordinates, prevCoordinates, (255,0,0),2)
-                print k2
+                trajectories = cv2.line(trajectories, coordinates, prevCoordinates, (255, 0, 0), 2)
+                curTrajectory = cv2.line(curTrajectory, coordinates, prevCoordinates, (255, 0, 0), 2)
+                # print k2
 
             #let's do some prediction
             if n > 1:
@@ -196,12 +187,15 @@ for k1,t in detections.iteritems():
             #useful for computing prediction and drawing trajectory
             prevCoordinates = coordinates
     #break;
+    cv2.imwrite("out/" + dataset + "/" + str(k1) + "_trajectory.jpg", curTrajectory)
     predictions[k1] = images
 
 print "predicted object coordinates"
 print predictions
 for k1,t in predictions.iteritems():
-    print t
+    # print t
+
+    curTrajectory = cv2.imread("out/" + dataset + "/" + str(k1) + "_trajectory.jpg")
 
     n = 0
     images = {}
@@ -213,19 +207,24 @@ for k1,t in predictions.iteritems():
         # write detected object trajectory
         if (i[0] in range(0,width)) & (i[1] in range(0,height)):
             coordinates = (i[0], i[1])
-            trajectory = cv2.circle(trajectory, coordinates, 2, (0, 255, 0), 3)
+            trajectories = cv2.circle(trajectories, coordinates, 2, (0, 0, 0), 3)
+            curTrajectory = cv2.circle(curTrajectory, coordinates, 2, (0, 0, 0), 3)
             font = cv2.FONT_HERSHEY_SIMPLEX
-            cv2.putText(trajectory, str(k1) + ';' + str(k2), coordinates, font, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+            cv2.putText(trajectories, str(k1) + ';' + str(k2), coordinates, font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+            cv2.putText(curTrajectory, str(k1) + ';' + str(k2), coordinates, font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
 
             if n > 1:
-                trajectory = cv2.line(trajectory, coordinates, prevCoordinates, (0,255,0),2)
+                trajectories = cv2.line(trajectories, coordinates, prevCoordinates, (0, 255, 0), 2)
+                curTrajectory = cv2.line(curTrajectory, coordinates, prevCoordinates, (0,255,0),2)
 
             # useful for computing prediction and drawing trajectory
             prevCoordinates = coordinates
 
+    cv2.imwrite("out/" + dataset + "/" + str(k1) + "_prediction_trajectory.jpg", curTrajectory)
+
 # Let's show our results
-cv2.imshow("trajectory", trajectory)
-cv2.imwrite("out/" + directory + "/sum_trajectory.jpg", trajectory)
+cv2.imshow("trajectory", trajectories)
+cv2.imwrite("out/" + dataset + "/sum_trajectory.jpg", trajectories)
 
 while True:
     # wait for 'q' key to exit program
