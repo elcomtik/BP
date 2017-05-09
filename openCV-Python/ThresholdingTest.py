@@ -2,16 +2,107 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 
-img = cv2.imread('out/frames/frame0.jpg',0)
+#at first do substraction, to generate picture of interest
+
+path1 = 'out/frames/raw/frame105.jpg'
+path2 = 'out/frames/raw/frame420.jpg'
+
+image1 = cv2.imread(path1)
+image2 = cv2.imread(path2)
+
+###OpenCV###
+res = cv2.subtract(image1, image2)
+img = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
+
+
+#or use one layer from whatever image
+# img = cv2.imread('out/frames/raw/frame0.jpg',2)
 
 #Simple thresholding
 
+cv2.namedWindow('image')
 
-ret,thresh1 = cv2.threshold(img,127,255,cv2.THRESH_BINARY)
-ret,thresh2 = cv2.threshold(img,127,255,cv2.THRESH_BINARY_INV)
-ret,thresh3 = cv2.threshold(img,127,255,cv2.THRESH_TRUNC)
-ret,thresh4 = cv2.threshold(img,127,255,cv2.THRESH_TOZERO)
-ret,thresh5 = cv2.threshold(img,127,255,cv2.THRESH_TOZERO_INV)
+def nothing(x):
+    pass
+
+# create trackbars for color change
+cv2.createTrackbar('min','image',0,255,nothing)
+cv2.createTrackbar('max','image',0,255,nothing)
+
+while(1):
+    # wait for 'q' key to exit program
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        cv2.destroyWindow('binary')
+        break
+
+    # get current positions of four trackbars
+    min = cv2.getTrackbarPos('min','image')
+    max = cv2.getTrackbarPos('max','image')
+
+    ret, thresh1 = cv2.threshold(img, min, max, cv2.THRESH_BINARY)
+    cv2.imshow('binary', thresh1)
+
+while(1):
+    # wait for 'q' key to exit program
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        cv2.destroyWindow('binary inverted')
+        break
+
+    # get current positions of four trackbars
+    min = cv2.getTrackbarPos('min','image')
+    max = cv2.getTrackbarPos('max','image')
+
+    ret, thresh1 = cv2.threshold(img, min, max, cv2.THRESH_BINARY_INV)
+    cv2.imshow('binary inverted', thresh1)
+
+
+while(1):
+    # wait for 'q' key to exit program
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        cv2.destroyWindow('trunc')
+        break
+
+    # get current positions of four trackbars
+    min = cv2.getTrackbarPos('min','image')
+    max = cv2.getTrackbarPos('max','image')
+
+    ret, thresh1 = cv2.threshold(img, min, max, cv2.THRESH_TRUNC)
+    cv2.imshow('trunc', thresh1)
+
+while(1):
+    # wait for 'q' key to exit program
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        cv2.destroyWindow('tozero')
+        break
+
+    # get current positions of four trackbars
+    min = cv2.getTrackbarPos('min','image')
+    max = cv2.getTrackbarPos('max','image')
+
+    ret, thresh1 = cv2.threshold(img, min, max, cv2.THRESH_TOZERO)
+    cv2.imshow('tozero', thresh1)
+
+while(1):
+    # wait for 'q' key to exit program
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        cv2.destroyWindow('tozero inverted')
+        break
+
+    # get current positions of four trackbars
+    min = cv2.getTrackbarPos('min','image')
+    max = cv2.getTrackbarPos('max','image')
+
+    ret, thresh1 = cv2.threshold(img, min, max, cv2.THRESH_TOZERO_INV)
+    cv2.imshow('tozero inverted', thresh1)
+
+
+
+ret,thresh1 = cv2.threshold(img,min,max,cv2.THRESH_BINARY)
+ret,thresh2 = cv2.threshold(img,min,max,cv2.THRESH_BINARY_INV)
+ret,thresh3 = cv2.threshold(img,min,max,cv2.THRESH_TRUNC)
+ret,thresh4 = cv2.threshold(img,min,max,cv2.THRESH_TOZERO)
+ret,thresh5 = cv2.threshold(img,min,max,cv2.THRESH_TOZERO_INV)
+
 titles = ['Original Image','BINARY','BINARY_INV','TRUNC','TOZERO','TOZERO_INV']
 images = [img, thresh1, thresh2, thresh3, thresh4, thresh5]
 for i in xrange(6):
@@ -56,7 +147,7 @@ images = [img, 0, th1,
           img, 0, th2,
           blur, 0, th3]
 titles = ['Original Noisy Image','Histogram','Global Thresholding (v=127)',
-          'Original Noisy Image','Histogram',"Otsu's Thresholding",
+          'Originalny obraz','Histogram',"Otsu prahovanie",
           'Gaussian filtered Image','Histogram',"Otsu's Thresholding"]
 for i in xrange(3):
     plt.subplot(3,3,i*3+1),plt.imshow(images[i*3],'gray')

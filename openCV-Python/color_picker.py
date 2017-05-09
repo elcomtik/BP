@@ -56,7 +56,8 @@ while(1):
 
     # frame = cv2.imread("out/frames/frame15.jpg")
     # frame = cv2.imread("out/frames/raw/MVI_1157.MOV_frame2746.jpg")
-    frame = cv2.imread("out/frames/sikmy/sikmy_01.mp4_frame27.jpg")
+    # frame = cv2.imread("out/frames/sikmy/sikmy_01.mp4_frame27.jpg")
+    frame = cv2.imread("out/substraction/img_substracted.jpg")
     cv2.imshow('frame', frame)
 
     # convert BGR to HSV
@@ -82,6 +83,12 @@ while(1):
     # orange = np.uint8([[[0,153,255 ]]])
     # hsv_orange = cv2.cvtColor(orange,cv2.COLOR_BGR2HSV)
     # print hsv_orange
+
+    # wait for 's' key to save current images
+    if cv2.waitKey(1) & 0xFF == ord('s'):
+        cv2.imwrite("out/color_thresholding/mask.jpg", mask)
+        cv2.imwrite("out/color_thresholding/res.jpg", res)
+        cv2.imwrite("out/color_thresholding/gray.jpg", gray)
 
 
 while True:

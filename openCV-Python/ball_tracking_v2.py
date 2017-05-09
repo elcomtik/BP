@@ -60,7 +60,7 @@ for filename in os.listdir(directory+dataset):
                 lower_orange = np.array([3, 120, 10])  # -15
                 upper_orange = np.array([33, 255, 255])  # +15
 
-                # threshold the HSV image to get only blue colors
+                # threshold the HSV image to get only orange colors
                 mask = cv2.inRange(hsv, lower_orange, upper_orange)
 
                 # bitwise-AND mask and original image
