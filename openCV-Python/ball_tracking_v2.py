@@ -56,8 +56,9 @@ for filename in os.listdir(directory+dataset):
 
                 # define range of orange color in HSV
                 # lower_orange = np.array([3, 100, 10]) #-15
-                # upper_orange = np.array([33, 255, 255]) #+15
-                lower_orange = np.array([3, 120, 10])  # -15
+                # lower_orange = np.array([3, 120, 10])  # -15
+                # lower_orange = np.array([3, 130, 150])  # -15
+                lower_orange = np.array([3, 80, 40])  # -15
                 upper_orange = np.array([33, 255, 255])  # +15
 
                 # threshold the HSV image to get only orange colors
@@ -72,47 +73,51 @@ for filename in os.listdir(directory+dataset):
 
                 # for better detection, ew need apply some blur (the best permformance provides for me gaussian)
                 # without blur, multiple countours detected, for exapmle pointd from noise
-                gray = cv2.GaussianBlur(mask, (9, 9), 2, 2)
+                gray = cv2.GaussianBlur(mask, (25, 25), 2, 2)
 
                 # display grayscale image before detection of circles
                 # cv2.imshow('gray', gray)
 
                 # find circles by contours
-                # gray = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
-                ret, thresh = cv2.threshold(gray, 127, 255, 0)
+                circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, 20, param1=45, param2=18, minRadius=0,
+                                           maxRadius=0)
 
-                img2, contours, hierarchy = cv2.findContours(gray, 1, 2)
-                # cv2.imshow("Contours", img2)
-
-                if contours:
-                    #print len(contours)
-
+                try:
+                    circles = np.uint16(np.around(circles))
                     found = False
-                    for cnt in contours:
-                        M = cv2.moments(cnt)
-                        # print M
+                    scX = 0
+                    scY = 0
+                    c = 0
+                    for i in circles[0, :]:
 
-                        # if area of detected object is smaller than defined, we asume that it is on edge of screen so we
+                        # if diameter detected object is smaller than defined, we asume that it is false detection
                         # exclude this one
-                        if M["m00"] > 11000:
-
+                        if i[2] > 50:
                             found = True
+                            c += 1
 
-                            cX = int(M["m10"] / M["m00"])
-                            cY = int(M["m01"] / M["m00"])
-                            center = (int(cX), int(cY))
-                            print str(video) + ";" + str(count) + ";" + str(cX) + ";" + str(cY) + ";" + str(M["m00"])
-                            images[count] = [cX, cY, M["m00"]]
+                            cX = i[0]
+                            cY = i[1]
+                            scX += cX
+                            scY += cY
 
-                            # draw the outer circle
-                            cv2.circle(frame, center, 65, (0, 255, 0), 2)
-                            # draw the center of the circle
-                            cv2.circle(frame, center, 2, (0, 0, 255), 3)
+                    if found:
+                        pcX = scX / c
+                        pcY = scY / c
+
+                        center = (int(pcX), int(pcY))
+                        print str(video) + ";" + str(count) + ";" + str(pcX) + ";" + str(pcY) + ";" + str(i[2])
+                        images[count] = [pcX, pcY, i[2]]
+
+                        # draw the outer circle
+                        cv2.circle(frame, center, 65, (0, 255, 0), 2)
+                        # draw the center of the circle
+                        cv2.circle(frame, center, 2, (0, 0, 255), 3)
 
                     if not found:
                         print str(video) + ";" + str(count) + ";?;?;?"
 
-                else:
+                except:
                     # print "nothing_here"
                     print str(video) + ";" + str(count) + ";?;?;?"
 
@@ -126,7 +131,7 @@ for filename in os.listdir(directory+dataset):
                 cv2.imwrite("out/" + path + "_frame_%d.jpg" % count, frame)
                 cv2.imwrite("out/" + path + "_frame_%d_mask.jpg" % count, gray)
 
-                #assemble our data into one
+                # assemble our data into one
                 detections[video] = images
 
                 # wait for 'q' key to exit program

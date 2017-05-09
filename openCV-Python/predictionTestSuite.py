@@ -209,7 +209,8 @@ directory = 'datasety/'
 # dataset = 'test'
 # dataset = 'test2'
 # dataset = 'test3'
-dataset = 'test4'
+# dataset = 'test4'
+dataset = 'test5'
 width = 1280
 height = 720
 aspect_ratio = (width, height)
@@ -219,13 +220,14 @@ aspect_ratio = (width, height)
 # Set up tracker.
 # Instead of MIL(4), you can also use
 # BOOSTING(1), KCF(2), TLD(2), MEDIANFLOW(1)
-# trackers = ["MIL", "BOOSTING", "KCF", "TLD", "MEDIANFLOW"]
-trackers = ["BOOSTING", "MEDIANFLOW"]
+trackers = ["MIL", "BOOSTING", "KCF", "TLD", "MEDIANFLOW"]
+# trackers = ["BOOSTING", "MEDIANFLOW"]
 # trackers = ["MEDIANFLOW"]
 
 
 video = 0
 reference = {} # reference detections by center of mass
+hough = {} # hough detections
 detections = {} # all other detections algorithms
 for filename in os.listdir(directory+dataset):
 
@@ -329,7 +331,7 @@ for filename in os.listdir(directory+dataset):
                     ##print str(video) + ";" + str(count) + ";?;?;?"
 
                 # display current frame
-                cv2.imshow(path, frame)
+                cv2.imshow(path + " reference", frame)
 
                 # write frame
                 out.write(frame)
@@ -355,6 +357,131 @@ for filename in os.listdir(directory+dataset):
         # out2.release()
         cv2.destroyAllWindows()
 
+        #######################
+        ##hough detection##
+        #######################
+        cap = cv2.VideoCapture(path)
+
+        # define the codec and create VideoWriter object
+        fourcc = cv2.VideoWriter_fourcc(*'DIVX')  # only this one currently working under windows
+
+        name = re.sub('\.mp4$', '', filename)
+        print 'out/' + dataset + '/reference_' + name + ".avi"
+        out = cv2.VideoWriter('out/' + dataset + '/hough_' + name + ".avi", fourcc, 50.0,
+                              aspect_ratio)  # 640,480 and 15fps for my webcam,   1280,720
+
+        # print out.isOpened()
+
+        video += 1
+        # print video
+
+        count = 0
+
+        images = {}
+        while cap.isOpened():
+
+            # take each frame
+            ret, frame = cap.read()
+            if ret:
+                count += 1
+                # print "frame no: " + str(count)
+                # convert BGR to HSV
+                hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+                # define range of orange color in HSV
+                # lower_orange = np.array([3, 100, 10]) #-15
+                # upper_orange = np.array([33, 255, 255]) #+15
+                lower_orange = np.array([3, 120, 10])  # -15
+                upper_orange = np.array([33, 255, 255])  # +15
+
+                # threshold the HSV image to get only orange colors
+                mask = cv2.inRange(hsv, lower_orange, upper_orange)
+
+                # bitwise-AND mask and original image
+                res = cv2.bitwise_and(frame, frame, mask=mask)
+
+                # display mask and masked source image
+                # cv2.imshow('mask', mask)
+                # cv2.imshow('res', res)
+
+                # for better detection, ew need apply some blur (the best permformance provides for me gaussian)
+                # without blur, multiple countours detected, for exapmle pointd from noise
+                gray = cv2.GaussianBlur(mask, (9, 9), 2, 2)
+
+                # display grayscale image before detection of circles
+                # cv2.imshow('gray', gray)
+
+                circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, 20, param1=45, param2=18, minRadius=0, maxRadius=0)
+
+                try:
+                    circles = np.uint16(np.around(circles))
+                    found = False
+                    scX = 0
+                    scY = 0
+                    c = 0
+                    for i in circles[0, :]:
+
+                        # if diameter detected object is smaller than defined, we asume that it is false detection
+                        # exclude this one
+                        if i[2] > 50:
+
+                            found = True
+                            c += 1
+
+                            cX = i[0]
+                            cY = i[1]
+                            scX += cX
+                            scY += cY
+
+                    if found:
+                        pcX = scX/c
+                        pcY = scY/c
+
+                        center = (int(pcX), int(pcY))
+                        print str(video) + ";" + str(count) + ";" + str(pcX) + ";" + str(pcY) + ";" + str(i[2])
+                        images[count] = [pcX, pcY, i[2]]
+
+                        # draw the outer circle
+                        cv2.circle(frame, center, 65, (0, 255, 0), 2)
+                        # draw the center of the circle
+                        cv2.circle(frame, center, 2, (0, 0, 255), 3)
+
+                    if not found:
+                        a = 0
+                        ##print str(video) + ";" + str(count) + ";?;?;?"
+
+                except:
+                    # print "nothing_here"
+                    a = 0
+                    ##print str(video) + ";" + str(count) + ";?;?;?"
+
+                # display current frame
+                cv2.imshow(path + " hough", frame)
+
+                # write frame
+                out.write(frame)
+
+                # write frame to jpg
+                cv2.imwrite("out/" + dataset + "/" + name + "_hough_frame_%d.jpg" % count, frame)
+                cv2.imwrite("out/" + dataset + "/" + name + "_hough_frame_%d_mask.jpg" % count, gray)
+
+                # assemble our data into one
+                hough[name + "_hough"] = images
+
+                # wait for 'q' key to exit program
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+
+            # if video source stops than exit loop
+            else:
+                break
+
+        # close properly resources
+        cap.release()
+        out.release()
+        # out2.release()
+        cv2.destroyAllWindows()
+
 
         ####################
         ##naive prediction##
@@ -365,14 +492,17 @@ for filename in os.listdir(directory+dataset):
 
         print "reference values"
         print reference
-        trajectory = printPath(reference, trajectory, (194, 255, 0), 0) #light blue
+        trajectory = printPath(reference, trajectory, False, 0) #light blue
+
+        print "hough values"
+        print hough
+        trajectory = printPath(hough, trajectory, False, 1)  #brown
 
         #compute naive predictions for reference detection
-        predictions = predictNaive(reference)
-
-        print "predicted object coordinates"
-        print predictions
-        trajectory = printPath(predictions, trajectory, (70,79,158), 1) #brown
+        # predictions = predictNaive(reference)
+        # print "predicted object coordinates"
+        # print predictions
+        # trajectory = printPath(predictions, trajectory, False, 2)
 
 
         ###########################
@@ -433,7 +563,7 @@ for filename in os.listdir(directory+dataset):
                     out.write(oframe)
 
                     # write to image
-                    cv2.imwrite("out/" + dataset + "/_" + trackerType + "/" + name +  "_frame_%d.jpg" % count, oframe)
+                    cv2.imwrite("out/" + dataset + "/" + name + "_" + trackerType +  "_frame_%d.jpg" % count, oframe)
 
                     # save data to variable, for later stats
                     detections[name + "_" + trackerType] = images

@@ -78,7 +78,7 @@ for filename in os.listdir(directory+dataset):
                 # display grayscale image before detection of circles
                 # cv2.imshow('gray', gray)
 
-                # find circles by contours
+                # find circles by hough
                 circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, 20, param1=45, param2=18, minRadius=0, maxRadius=0)
 
                 try:
